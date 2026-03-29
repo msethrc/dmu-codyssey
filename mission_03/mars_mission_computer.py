@@ -1,4 +1,4 @@
-# 과제 3 데이터 랜덤 생성성
+# 과제 3 데이터 랜덤 생성
 import random
 from datetime import datetime
 
@@ -26,6 +26,7 @@ class DummySensor:
 
     # 과제 5 get_env() 메소드 추가
     def get_env(self, key=None):
+        # 보너스 1 log 파일 생성 추가
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         in_temp = self.env_values["mars_base_internal_temperature"]
         ex_temp = self.env_values["mars_base_external_temperature"]
