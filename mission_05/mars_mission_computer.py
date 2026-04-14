@@ -1,11 +1,13 @@
-import platform
-import psutil # psutil 설치 (pip install psutil)
+import platform # 시스템 정보를 확인하는 모듈
+import psutil # 시스템 및 프로세스 관리 라이브러리(설치 필요)
 import json
 import os
 
+DEFAULT_SETTING_FILE = 'setting.txt'
+
 class MissionComputer:
     # 보너스 : setting.txt 에서 출력되는 정보의 항목을 셋팅할 수 있도록 수정.
-    def __init__(self, setting_file="setting.txt"):
+    def __init__(self, setting_file=DEFAULT_SETTING_FILE):
         # 현재 실행 중인 .py 파일의 디렉토리 경로를 가져옴.
         current_dir = os.path.dirname(os.path.abspath(__file__))
         # 디렉토리 경로와 파일 이름을 합쳐서 절대 경로를 만듬.
@@ -15,7 +17,7 @@ class MissionComputer:
     # setting.txt에서 출력되는 정보 항목 가져오기.
     def _load_settings(self):
         if not os.path.exists(self.setting_file):
-            print(f"경고: {self.setting_file} 파일이 없습니다. 모든 항목을 출력합니다.")
+            print(f'경고: {self.setting_file} 파일이 없습니다. 모든 항목을 출력합니다.')
             return None
         
         with open(self.setting_file, "r", encoding="utf-8") as f:
@@ -29,37 +31,47 @@ class MissionComputer:
     
     # 과제 1 : 미션 컴퓨터의 정보를 알아보는 get_mission_computer_info 메소드 추가.
     def get_mission_computer_info(self):
-        total_memory_gb = round(psutil.virtual_memory().total / (1024**3), 2)
+        try:
+            total_memory_gb = round(psutil.virtual_memory().total / (1024**3), 2)
+            
+            info_dict = {
+                '운영체계': platform.system(),
+                '운영체계 버전': platform.version(),
+                'CPU의 타입': platform.processor(),
+                'CPU의 코어 수': psutil.cpu_count(logical=False), # 물리적 코어 개수만 반환
+                '메모리의 크기': f'{total_memory_gb} GB'
+            }
+            filtered_info = self._filter_dict(info_dict)
+            # 과제 2 : 시스템 정보를 JSON 형식으로 출력.
+            return json.dumps(filtered_info, indent=4, ensure_ascii=False)
         
-        info_dict = {
-            "운영체계": platform.system(),
-            "운영체계 버전": platform.version(),
-            "CPU의 타입": platform.processor(),
-            "CPU의 코어 수": psutil.cpu_count(logical=False),
-            "메모리의 크기": f"{total_memory_gb} GB"
-        }
-        filtered_info = self._filter_dict(info_dict)
-        # 과제 2 : 시스템 정보를 JSON 형식으로 출력.
-        return json.dumps(filtered_info, indent=4, ensure_ascii=False)
+        except PermissionError:
+            return json.dumps({'error': '시스템 정보에 접근할 권한이 없습니다.'}, ensure_ascii=False)
+        except Exception as e:
+            return json.dumps({'error': f'정보를 가져오는 중 오류 발생: {str(e)}'}, ensure_ascii=False)
+
 
     # 과제 3, 4 : 미션 컴퓨터의 부하를 가져오는 get_mission_computer_load() 메소드 추가.
     def get_mission_computer_load(self):
-        # interval=1은 1초 동안의 평균 사용량을 측정.
-        cpu_usage = psutil.cpu_percent(interval=1)
-        # 메모리 사용율 (%)
-        memory_usage = psutil.virtual_memory().percent
-        
-        load_dict = {
-            "CPU 실시간 사용량": f"{cpu_usage}%",
-            "메모리 실시간 사용량": f"{memory_usage}%"
-        }
-        filtered_load = self._filter_dict(load_dict)
-        # 과제 5 : 실시간 사용량 정보를 JSON 형식으로 출력.
-        return json.dumps(filtered_load, indent=4, ensure_ascii=False)
+        try:
+            # interval=1은 1초 동안의 평균 사용량을 측정.
+            cpu_usage = psutil.cpu_percent(interval=1)
+            # 메모리 사용율 (%)
+            memory_usage = psutil.virtual_memory().percent
+            
+            load_dict = {
+                'CPU 실시간 사용량': f'{cpu_usage}%',
+                '메모리 실시간 사용량': f'{memory_usage}%'
+            }
+            filtered_load = self._filter_dict(load_dict)
+            # 과제 5 : 실시간 사용량 정보를 JSON 형식으로 출력.
+            return json.dumps(filtered_load, indent=4, ensure_ascii=False)
+        except Exception as e:
+            return json.dumps({'error': f'정보를 가져오는 중 오류 발생: {str(e)}'}, ensure_ascii=False)
 
 if __name__ == "__main__":
     # 과제 7 : MissionComputer 클래스를 runComputer 라는 이름으로 인스턴스화.
-    runComputer = MissionComputer("setting.txt")
+    runComputer = MissionComputer()
     # 과제 6, 8 : get_mission_computer_info(), get_mission_computer_load() 출력.
     print('-- 필터링된 시스템 정보 ---')
     info_result = runComputer.get_mission_computer_info()
